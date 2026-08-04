@@ -150,19 +150,19 @@ export default function App() {
     setIsLoading(true);
     const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
     try {
-      const res = await fetch(`${apiBase}/api/results-calendar?from_date=04-08-2026&to_date=11-08-2026`);
+      const res = await fetch(`${apiBase}/api/merged-calendar`);
       if (res.ok) {
         const json = await res.json();
         setBackendStatus('online');
         if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-          // Merge API data with existing detailed dataset
+          // Parse merged NSE + BSE entries deduplicated by ISIN
           const parsedApi = json.data.map((item, idx) => ({
-            symbol: item.symbol || item.sm_symbol || `NSE_${idx}`,
-            name: item.company || item.sm_name || item.symbol || "Indian Enterprise",
-            sector: item.industry || item.category || "Equities",
-            market_cap: "NSE Listed",
-            exchange: json.source || "NSE",
-            event_date: item.an_dt ? item.an_dt.split(' ')[0] : "2026-08-05",
+            symbol: item.symbol || item.isin || `EXCH_${idx}`,
+            name: item.company_name || item.symbol || "Indian Enterprise",
+            sector: "Equities",
+            market_cap: item.exchanges ? item.exchanges.join(' & ') + ' Listed' : 'Listed',
+            exchange: item.exchanges && item.exchanges.length > 1 ? 'NSE & BSE' : (item.exchanges?.[0] || 'NSE'),
+            event_date: item.event_date ? String(item.event_date).split(' ')[0] : "2026-08-05",
             revenue: "₹" + (Math.floor(Math.random() * 50000) + 5000) + " Cr",
             est_revenue: "₹" + (Math.floor(Math.random() * 48000) + 5000) + " Cr",
             revenue_yoy: "+" + (Math.random() * 10 + 2).toFixed(1) + "%",
@@ -173,7 +173,7 @@ export default function App() {
             ebitda_margin: (Math.random() * 15 + 10).toFixed(1) + "%",
             vs_estimates: Math.random() > 0.3 ? "BEAT" : "MISSED",
             beat_margin: "+" + (Math.random() * 8 + 1).toFixed(2) + "%",
-            purpose: item.purpose || item.bm_desc || "Q1 Financial Results"
+            purpose: item.purpose || "Q1 Financial Results"
           }));
           setEarnings([...parsedApi, ...INITIAL_EARNINGS_DATA]);
         }
